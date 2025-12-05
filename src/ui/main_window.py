@@ -103,8 +103,10 @@ class MainWindow(QMainWindow):
         
         # Cleaning Options Group
         options_group = QGroupBox("Cleaning Options")
-        options_layout = QHBoxLayout()
+        options_layout = QVBoxLayout()
         
+        # First row - removal options
+        removal_row = QHBoxLayout()
         self.chk_remove_links = QCheckBox("Remove Links")
         self.chk_remove_links.setChecked(self.settings_manager.get('remove_links', True))
         
@@ -114,9 +116,21 @@ class MainWindow(QMainWindow):
         self.chk_remove_watermarks = QCheckBox("Remove Watermarks (UPDF, etc.)")
         self.chk_remove_watermarks.setChecked(self.settings_manager.get('remove_watermarks', False))
         
-        options_layout.addWidget(self.chk_remove_links)
-        options_layout.addWidget(self.chk_remove_annotations)
-        options_layout.addWidget(self.chk_remove_watermarks)
+        removal_row.addWidget(self.chk_remove_links)
+        removal_row.addWidget(self.chk_remove_annotations)
+        removal_row.addWidget(self.chk_remove_watermarks)
+        
+        # Second row - output options
+        output_row = QHBoxLayout()
+        self.chk_overwrite = QCheckBox("Overwrite original files (⚠️ No backup)")
+        self.chk_overwrite.setChecked(False)
+        self.chk_overwrite.setStyleSheet("QCheckBox { color: #F44336; font-weight: 500; }")
+        
+        output_row.addWidget(self.chk_overwrite)
+        output_row.addStretch()
+        
+        options_layout.addLayout(removal_row)
+        options_layout.addLayout(output_row)
         options_group.setLayout(options_layout)
         
         # Progress Section
@@ -292,6 +306,22 @@ class MainWindow(QMainWindow):
             self.activity_log.warning("No files selected for cleaning")
             QMessageBox.warning(self, "No Files", "Please select files to clean.")
             return
+        
+        # Check if overwrite is enabled and confirm
+        if self.chk_overwrite.isChecked():
+            reply = QMessageBox.warning(
+                self, 
+                "⚠️ Overwrite Original Files",
+                f"You are about to OVERWRITE {len(files_to_process)} original file(s).\n\n"
+                "⚠️ WARNING: This action cannot be undone!\n"
+                "The original files will be permanently modified.\n\n"
+                "Are you sure you want to continue?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                self.activity_log.info("Cleaning cancelled by user")
+                return
             
         # Update UI
         self.btn_start.setEnabled(False)
@@ -306,10 +336,11 @@ class MainWindow(QMainWindow):
         options = {
             'remove_links': self.chk_remove_links.isChecked(),
             'remove_annotations': self.chk_remove_annotations.isChecked(),
-            'remove_watermarks': self.chk_remove_watermarks.isChecked()
+            'remove_watermarks': self.chk_remove_watermarks.isChecked(),
+            'overwrite_original': self.chk_overwrite.isChecked()
         }
         
-        # Save options
+        # Save options (except overwrite - too dangerous to save as default)
         self.settings_manager.set('remove_links', options['remove_links'])
         self.settings_manager.set('remove_annotations', options['remove_annotations'])
         self.settings_manager.set('remove_watermarks', options['remove_watermarks'])
@@ -321,8 +352,10 @@ class MainWindow(QMainWindow):
         self.worker.finished.connect(self.on_finished)
         self.worker.start()
         
-        self.activity_log.info(f"Started cleaning {len(files_to_process)} file(s)")
-        self.statusBar().showMessage("Cleaning in progress...")
+        mode = "OVERWRITING" if options['overwrite_original'] else "cleaning"
+        self.activity_log.info(f"Started {mode} {len(files_to_process)} file(s)")
+        self.statusBar().showMessage(f"{mode.capitalize()} in progress...")
+
 
     def on_progress(self, current, total):
         self.progress_bar.setValue(current)

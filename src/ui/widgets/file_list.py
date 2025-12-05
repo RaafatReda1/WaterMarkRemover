@@ -11,35 +11,22 @@ class FileList(QTableWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setColumnCount(6)
-        self.setHorizontalHeaderLabels([
-            "", "Status", "File Name", "Pages", "Size", "Actions"
-        ])
-        
-        # Configure look and feel
-        self.verticalHeader().setVisible(False)
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.setShowGrid(False)
+        self.setColumnCount(5)
+        self.setHorizontalHeaderLabels(["✓", "Status", "Name", "Pages", "Size"])
+        self.setSelectionBehavior(QTableWidget.SelectRows)
         self.setAlternatingRowColors(True)
-        self.setDragEnabled(True)
+        self.horizontalHeader().setStretchLastSection(False)
+        self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.setColumnWidth(0, 40)
+        self.setColumnWidth(1, 60)
+        self.setColumnWidth(3, 80)
+        self.setColumnWidth(4, 100)
+        
+        # Enable drag and drop
         self.setAcceptDrops(True)
-        self.setViewportMargins(0, 0, 0, 0)
         
-        # Configure columns
-        header = self.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Fixed)  # Checkbox
-        header.setSectionResizeMode(1, QHeaderView.Fixed)  # Status
-        header.setSectionResizeMode(2, QHeaderView.Stretch) # Name
-        header.setSectionResizeMode(3, QHeaderView.Fixed)  # Pages
-        header.setSectionResizeMode(4, QHeaderView.Fixed)  # Size
-        header.setSectionResizeMode(5, QHeaderView.Fixed)  # Actions
-        
-        self.setColumnWidth(0, 30)
-        self.setColumnWidth(1, 40)
-        self.setColumnWidth(3, 60)
-        self.setColumnWidth(4, 80)
-        self.setColumnWidth(5, 80)
+        # Connect double-click to open file
+        self.itemDoubleClicked.connect(self.on_item_double_clicked)
 
     def add_file_item(self, file_data):
         """
@@ -56,7 +43,7 @@ class FileList(QTableWidget):
         self.setItem(row, 0, chk_item)
         
         # 1. Status Icon
-        status_item = QTableWidgetItem("QUE") # Default to queued
+        status_item = QTableWidgetItem("QUE")  # Default to queued
         status_item.setTextAlignment(Qt.AlignCenter)
         self.setItem(row, 1, status_item)
         
@@ -77,10 +64,6 @@ class FileList(QTableWidget):
         size_item = QTableWidgetItem(size_str)
         size_item.setTextAlignment(Qt.AlignCenter)
         self.setItem(row, 4, size_item)
-        
-        # 5. Actions (Button)
-        # For phase 1 we might skip the button or add a placeholder
-        pass
 
     def _format_size(self, size_bytes):
         for unit in ['B', 'KB', 'MB', 'GB']:
@@ -116,19 +99,25 @@ class FileList(QTableWidget):
         """
         files = []
         for row in range(self.rowCount()):
-            # Assuming we store the full path in the tooltip of the name column (col 2)
+            # Get file data from name item
             name_item = self.item(row, 2)
-            path = name_item.toolTip()
+            if not name_item:
+                continue
+                
+            file_data = name_item.data(Qt.UserRole)
+            if not file_data:
+                continue
             
             # Checkbox state
             chk_item = self.item(row, 0)
-            checked = chk_item.checkState() == Qt.Checked
+            checked = chk_item.checkState() == Qt.Checked if chk_item else False
             
             files.append({
-                'path': path,
+                'path': file_data.get('path', ''),
                 'checked': checked,
                 'row': row
             })
+        
         return files
 
     def update_status(self, row, status, tooltip=""):
@@ -136,7 +125,31 @@ class FileList(QTableWidget):
         Updates the status column for a specific row.
         """
         item = self.item(row, 1)
-        item.setText(status)
-        item.setToolTip(tooltip)
-
-
+        if item:
+            item.setText(status)
+            item.setToolTip(tooltip)
+    
+    def on_item_double_clicked(self, item):
+        """Open the PDF file when double-clicked"""
+        row = item.row()
+        name_item = self.item(row, 2)
+        
+        if name_item:
+            file_data = name_item.data(Qt.UserRole)
+            if file_data and 'path' in file_data:
+                file_path = file_data['path']
+                
+                # Open file with default PDF viewer
+                import os
+                import platform
+                import subprocess
+                
+                try:
+                    if platform.system() == 'Windows':
+                        os.startfile(file_path)
+                    elif platform.system() == 'Darwin':  # macOS
+                        subprocess.run(['open', file_path])
+                    else:  # Linux
+                        subprocess.run(['xdg-open', file_path])
+                except Exception as e:
+                    print(f"Error opening file: {e}")

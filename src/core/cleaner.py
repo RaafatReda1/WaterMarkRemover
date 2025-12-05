@@ -13,6 +13,7 @@ class PDFCleaner:
             remove_links = options.get('remove_links', True) if options else True
             remove_annotations = options.get('remove_annotations', False) if options else False
             remove_watermarks = options.get('remove_watermarks', False) if options else False
+            overwrite_original = options.get('overwrite_original', False) if options else False
             
             links_removed = 0
             annotations_removed = 0
@@ -90,16 +91,39 @@ class PDFCleaner:
                                 # This is complex, so for now we'll mark it
                                 watermarks_removed += 1
             
-            # Clean the document to remove unused objects
-            doc.save(output_path, garbage=4, deflate=True, clean=True)
-            doc.close()
-            
-            return {
-                'success': True,
-                'links_removed': links_removed,
-                'annotations_removed': annotations_removed,
-                'watermarks_removed': watermarks_removed
-            }
+            # If overwrite is enabled, save to original path
+            if overwrite_original:
+                # Save to temp file first, then replace original
+                import tempfile
+                temp_fd, temp_path = tempfile.mkstemp(suffix='.pdf')
+                os.close(temp_fd)
+                
+                doc.save(temp_path, garbage=4, deflate=True, clean=True)
+                doc.close()
+                
+                # Replace original with temp file
+                import shutil
+                shutil.move(temp_path, input_path)
+                
+                return {
+                    'success': True,
+                    'links_removed': links_removed,
+                    'annotations_removed': annotations_removed,
+                    'watermarks_removed': watermarks_removed,
+                    'overwritten': True
+                }
+            else:
+                # Clean the document to remove unused objects
+                doc.save(output_path, garbage=4, deflate=True, clean=True)
+                doc.close()
+                
+                return {
+                    'success': True,
+                    'links_removed': links_removed,
+                    'annotations_removed': annotations_removed,
+                    'watermarks_removed': watermarks_removed,
+                    'overwritten': False
+                }
             
         except Exception as e:
             import traceback
