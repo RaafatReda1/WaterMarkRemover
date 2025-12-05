@@ -38,7 +38,7 @@ class SettingsManager:
         else:
             base = Path.home() / '.config'
         
-        config_dir = base / 'PDFWatermarkCleaner'
+        config_dir = base / 'WaterMarkEraser'
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir
     

@@ -25,7 +25,7 @@ from src.models.enums import FileStatus
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PDF Watermark Cleaner Pro")
+        self.setWindowTitle("WaterMarkEraser - Professional PDF Cleaner")
         self.setMinimumSize(1000, 700)
         
         # Managers
@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
         
         # Log welcome message
-        self.activity_log.info("PDF Watermark Cleaner Pro started")
+        self.activity_log.info("WaterMarkEraser started - Ready to clean PDFs!")
         
     def create_toolbar(self):
         """Create top toolbar with action buttons"""

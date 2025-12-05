@@ -11,8 +11,8 @@ from src.ui.styles.styles import apply_stylesheet
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("PDF Watermark Cleaner Pro")
-    app.setOrganizationName("Antigravity")
+    app.setApplicationName("WaterMarkEraser")
+    app.setOrganizationName("Raafat Shahin")
     
     # Load settings to get theme preference
     from src.utils.settings import SettingsManager
@@ -23,6 +23,12 @@ def main():
     apply_stylesheet(app, theme)
     
     window = MainWindow()
+    
+    # Set window icon
+    icon_path = os.path.join(os.path.dirname(__file__), 'resources', 'logo.ico')
+    if os.path.exists(icon_path):
+        window.setWindowIcon(QIcon(icon_path))
+    
     window.show()
     
     sys.exit(app.exec())
