@@ -14,8 +14,13 @@ def main():
     app.setApplicationName("PDF Watermark Cleaner Pro")
     app.setOrganizationName("Antigravity")
     
-    # Apply professional styling
-    apply_stylesheet(app)
+    # Load settings to get theme preference
+    from src.utils.settings import SettingsManager
+    settings = SettingsManager()
+    theme = settings.get('theme', 'light')
+    
+    # Apply theme
+    apply_stylesheet(app, theme)
     
     window = MainWindow()
     window.show()

@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                                QPushButton, QLabel, QFileDialog, QProgressBar, 
-                               QGroupBox, QCheckBox, QMenuBar, QMenu, QMessageBox)
+                               QGroupBox, QCheckBox, QMenuBar, QMenu, QMessageBox,
+                               QApplication)
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QAction, QKeySequence
 import sys
@@ -419,7 +420,12 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self.settings_manager, self)
         if dialog.exec():
             self.activity_log.info("Settings saved")
-            # Apply settings
+            # Reapply theme
+            from src.ui.styles.styles import apply_stylesheet
+            theme = self.settings_manager.get('theme', 'light')
+            apply_stylesheet(QApplication.instance(), theme)
+            self.activity_log.info(f"Theme changed to: {theme}")
+            # Apply other settings
             self.load_settings()
     
     def show_about(self):
@@ -443,6 +449,11 @@ class MainWindow(QMainWindow):
         
         stats_visible = self.settings_manager.get('statistics_visible', True)
         self.statistics_bar.setVisible(stats_visible)
+        
+        # Apply theme
+        from src.ui.styles.styles import apply_stylesheet
+        theme = self.settings_manager.get('theme', 'light')
+        apply_stylesheet(QApplication.instance(), theme)
     
     def closeEvent(self, event):
         """Save settings on close"""

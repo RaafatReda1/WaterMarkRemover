@@ -71,7 +71,7 @@ class SettingsDialog(QDialog):
         
         # Theme
         self.cmb_theme = QComboBox()
-        self.cmb_theme.addItems(["Light", "Dark (Coming Soon)"])
+        self.cmb_theme.addItems(["Light", "Dark"])
         layout.addRow("Theme:", self.cmb_theme)
         
         # Font size
@@ -116,6 +116,11 @@ class SettingsDialog(QDialog):
         self.spin_font_size.setValue(self.settings.get('font_size', 10))
         self.spin_threads.setValue(self.settings.get('thread_count', 4))
         
+        # Theme
+        theme = self.settings.get('theme', 'light')
+        theme_index = 0 if theme == 'light' else 1
+        self.cmb_theme.setCurrentIndex(theme_index)
+        
         log_level = self.settings.get('log_level', 'INFO')
         index = self.cmb_log_level.findText(log_level)
         if index >= 0:
@@ -129,6 +134,10 @@ class SettingsDialog(QDialog):
         self.settings.set('font_size', self.spin_font_size.value())
         self.settings.set('thread_count', self.spin_threads.value())
         self.settings.set('log_level', self.cmb_log_level.currentText())
+        
+        # Save theme
+        theme = 'light' if self.cmb_theme.currentIndex() == 0 else 'dark'
+        self.settings.set('theme', theme)
         
         self.accept()
     
