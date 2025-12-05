@@ -30,10 +30,22 @@ class CleanWorker(QThread):
             
             # Emit result
             if result['success']:
-                msg = f"Removed {result.get('links_removed', 0)} links"
+                parts = []
+                if result.get('links_removed', 0) > 0:
+                    parts.append(f"{result['links_removed']} links")
+                if result.get('annotations_removed', 0) > 0:
+                    parts.append(f"{result['annotations_removed']} annotations")
+                if result.get('watermarks_removed', 0) > 0:
+                    parts.append(f"{result['watermarks_removed']} watermarks")
+                
+                msg = f"Removed: {', '.join(parts)}" if parts else "No changes needed"
                 self.file_finished.emit(row, True, msg)
             else:
-                self.file_finished.emit(row, False, result.get('error', 'Unknown error'))
+                error_msg = result.get('error', 'Unknown error')
+                # Show traceback in tooltip if available
+                if 'traceback' in result:
+                    error_msg = f"{error_msg}\n\nDetails:\n{result['traceback']}"
+                self.file_finished.emit(row, False, error_msg)
             
             self.progress.emit(i + 1, total)
             

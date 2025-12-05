@@ -51,7 +51,13 @@ class MainWindow(QMainWindow):
         options_layout = QHBoxLayout()
         self.chk_remove_links = QCheckBox("Remove Links")
         self.chk_remove_links.setChecked(True)
+        self.chk_remove_annotations = QCheckBox("Remove Annotations")
+        self.chk_remove_annotations.setChecked(False)
+        self.chk_remove_watermarks = QCheckBox("Remove Watermarks (UPDF, etc.)")
+        self.chk_remove_watermarks.setChecked(False)
         options_layout.addWidget(self.chk_remove_links)
+        options_layout.addWidget(self.chk_remove_annotations)
+        options_layout.addWidget(self.chk_remove_watermarks)
         options_group.setLayout(options_layout)
         
         # Start Button & Progress
@@ -175,7 +181,9 @@ class MainWindow(QMainWindow):
         
         # Prepare options
         options = {
-            'remove_links': self.chk_remove_links.isChecked()
+            'remove_links': self.chk_remove_links.isChecked(),
+            'remove_annotations': self.chk_remove_annotations.isChecked(),
+            'remove_watermarks': self.chk_remove_watermarks.isChecked()
         }
         
         # Start Worker
