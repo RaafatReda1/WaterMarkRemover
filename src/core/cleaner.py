@@ -19,6 +19,19 @@ class PDFCleaner:
             annotations_removed = 0
             watermarks_removed = 0
             
+            # Pre-scan for repeated XObjects (likely watermarks)
+            watermark_xrefs = set()
+            if remove_watermarks:
+                xref_counts = {}
+                for p in doc:
+                    # get_xobjects returns list of items, handle variable length
+                    for item in p.get_xobjects():
+                        xo_xref = item[0]
+                        xref_counts[xo_xref] = xref_counts.get(xo_xref, 0) + 1
+                
+                # Identify XRefs that appear on more than 1 page
+                watermark_xrefs = {x for x, count in xref_counts.items() if count > 1}
+            
             for page in doc:
                 # 1. Remove Links
                 if remove_links:
@@ -61,21 +74,40 @@ class PDFCleaner:
                         content_stream = doc.xref_stream(xref)
                         
                         if content_stream:
-                            # Remove UPDF watermark XObjects
-                            # These appear as "/UPDFX1 Do", "/UPDFX2 Do", etc. in the content stream
                             modified = content_stream
-                            
-                            # Remove all UPDF XObject references
                             import re
-                            # Pattern to match XObject invocations like "/UPDFX1 Do" or "/UPDFXn Do"
-                            modified = re.sub(rb'/UPDFX\d+\s+Do', b'', modified)
                             
-                            # Also remove common watermark patterns
-                            modified = re.sub(rb'/X\d+\s+Do', b'', modified)  # Generic XObjects
+                            # 1. (Removed) Do NOT blindly remove UPDF watermark XObjects by name pattern
+                            # because user-added images might be named 'UPDFX...' if added via UPDF editor.
+                            # We now rely solely on the frequency detection below.
+                            # modified = re.sub(rb'/UPDFX\d+\s+Do', b'', modified)
                             
-                            # Update the content stream
-                            doc.update_stream(xref, modified)
-                            watermarks_removed += 1
+                            # 2. Remove repeated XObjects (likely watermarks)
+                            page_xobjects = page.get_xobjects()
+                            names_to_remove = set()
+                            
+                            for item in page_xobjects:
+                                xo_xref = item[0]
+                                xo_name = item[1]
+                                if xo_xref in watermark_xrefs:
+                                    names_to_remove.add(xo_name)
+                            
+                            for name in names_to_remove:
+                                # Create pattern for "/Name Do"
+                                # handle encoding carefully
+                                try:
+                                    name_bytes = name.encode('ascii')
+                                    # Pattern: /Name Do
+                                    # Use regex escape to handle potential special chars in name
+                                    pattern = rb'/' + re.escape(name_bytes) + rb'\s+Do'
+                                    modified = re.sub(pattern, b'', modified)
+                                except:
+                                    pass # Skip if name encoding fails
+                            
+                            # Update the content stream if modified
+                            if modified != content_stream:
+                                doc.update_stream(xref, modified)
+                                watermarks_removed += 1
                     
                     # Remove images in watermark positions (top-left corner, typically < 200 points from top)
                     images = page.get_images(full=True)
