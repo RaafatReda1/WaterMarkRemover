@@ -44,22 +44,25 @@ class AboutDialog(QDialog):
         
         # Description
         desc = QLabel(
-            "Professional desktop application for removing watermarks, "
-            "links, and annotations from PDF files with intelligent detection "
-            "and batch processing."
+            "WaterMarkEraser is a professional application for removing watermarks, links, "
+            "and annotations from PDF files. It uses intelligent detection to safely eliminate "
+            "repeated watermark elements while preserving the original document content. "
+            "The application supports batch processing and features a clean, modern interface "
+            "with Dark and Light themes."
         )
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignCenter)
-        desc.setStyleSheet("font-size: 10pt; color: #424242; padding: 10px;")
+        desc.setStyleSheet("font-size: 10pt; padding: 10px;")
         layout.addWidget(desc)
         
         # Separator
         layout.addWidget(self._create_separator())
         
         # Developer section title
-        dev_title = QLabel("👨‍💻 Developer")
+        dev_title = QLabel("Developer")
         dev_title.setAlignment(Qt.AlignCenter)
-        dev_title.setStyleSheet("font-size: 14pt; font-weight: 600; color: #2196F3;")
+        from src.ui.styles.styles import current_theme
+        dev_title.setStyleSheet(f"font-size: 14pt; font-weight: 600; color: {current_theme['primary']};")
         layout.addWidget(dev_title)
         
         # Developer photo
@@ -76,7 +79,12 @@ class AboutDialog(QDialog):
         # Developer name
         dev_name = QLabel("Raafat Shahin")
         dev_name.setAlignment(Qt.AlignCenter)
-        dev_name.setStyleSheet("font-weight: 600; font-size: 14pt; color: #212121;")
+        dev_name.setText(
+            "Developed by Raafat Shahin, WaterMarkEraser focuses on accuracy, "
+            "performance, and a professional user experience."
+        )
+        dev_name.setWordWrap(True)
+        dev_name.setStyleSheet("font-weight: 600; font-size: 11pt; margin-top: 10px;")
         layout.addWidget(dev_name)
         
         # Contact buttons
@@ -129,13 +137,13 @@ class AboutDialog(QDialog):
         layout.addWidget(self._create_separator())
         
         # Features
-        features_title = QLabel("✨ Features")
+        features_title = QLabel("Features")
         features_title.setAlignment(Qt.AlignCenter)
-        features_title.setStyleSheet("font-size: 12pt; font-weight: 600; color: #2196F3;")
+        features_title.setStyleSheet(f"font-size: 12pt; font-weight: 600; color: {current_theme['primary']};")
         layout.addWidget(features_title)
         
         features = QLabel(
-            "• Remove UPDF watermarks\n"
+            "• Remove PDF watermarks\n"
             "• Remove links and annotations\n"
             "• Batch processing support\n"
             "• Smart watermark detection\n"
@@ -143,7 +151,7 @@ class AboutDialog(QDialog):
             "• Professional UI/UX"
         )
         features.setAlignment(Qt.AlignCenter)
-        features.setStyleSheet("font-size: 9pt; color: #424242; line-height: 1.6;")
+        features.setStyleSheet("font-size: 9pt; line-height: 1.6;")
         layout.addWidget(features)
         
         layout.addStretch()
@@ -151,7 +159,7 @@ class AboutDialog(QDialog):
         # Copyright
         copyright_text = QLabel("© 2024 Raafat Shahin. All rights reserved.")
         copyright_text.setAlignment(Qt.AlignCenter)
-        copyright_text.setStyleSheet("font-size: 8pt; color: #9E9E9E;")
+        copyright_text.setStyleSheet("font-size: 8pt; color: grey;")
         layout.addWidget(copyright_text)
         
         # Close button
