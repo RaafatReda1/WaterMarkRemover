@@ -2,11 +2,14 @@
 
 block_cipher = None
 
+import os
+curr_dir = os.getcwd()
+
 # Collect all data files
 added_files = [
-    ('src/resources/logo.png', 'resources'),
-    ('src/resources/logo.ico', 'resources'),
-    ('src/resources/developer.jpg', 'resources'),
+    (os.path.join(curr_dir, 'src', 'resources', 'logo.png'), 'resources'),
+    (os.path.join(curr_dir, 'src', 'resources', 'logo.ico'), 'resources'),
+    (os.path.join(curr_dir, 'src', 'resources', 'developer.jpg'), 'resources'),
 ]
 
 a = Analysis(
@@ -53,6 +56,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='logo.ico',  # Application icon
+    icon='src/resources/logo.ico',  # Application icon
     version_file=None,
 )
