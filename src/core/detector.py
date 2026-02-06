@@ -35,9 +35,10 @@ class WatermarkDetector:
             detections['links'] = link_count
             
             # Image Analysis: Find images that appear on multiple pages
-            # If an image xref appears on > 50% of pages, it's likely a watermark/background
+            # If an image xref appears on > 80% of pages, it's likely a watermark/background
+            # Updated threshold to be consistent with cleaner.py (was 50%, now 80%)
             img_counts = Counter(all_images)
-            repeated_images = [xref for xref, count in img_counts.items() if count > max(1, page_count * 0.5)]
+            repeated_images = [xref for xref, count in img_counts.items() if count > max(2, page_count * 0.8)]
             detections['images'] = len(repeated_images)
 
             # 2. Text Pattern Detection

@@ -3,7 +3,7 @@ from src.core.cleaner import PDFCleaner
 
 class CleanWorker(QThread):
     progress = Signal(int, int) # item_idx, total
-    file_finished = Signal(int, bool, str) # row_idx, success, message
+    file_finished = Signal(int, bool, str, list) # row_idx, success, message, details
     finished = Signal()
     
     def __init__(self, files, options=None):
@@ -39,13 +39,30 @@ class CleanWorker(QThread):
                     parts.append(f"{result['watermarks_removed']} watermarks")
                 
                 msg = f"Removed: {', '.join(parts)}" if parts else "No changes needed"
-                self.file_finished.emit(row, True, msg)
+                
+                # Build detailed object list
+                details = []
+                if result.get('removed_objects'):
+                    for obj in result['removed_objects']:
+                        name = obj['name']
+                        pages = obj['pages']
+                        obj_type = obj.get('type', 'object')
+                        
+                        # Format page list
+                        if len(pages) <= 5:
+                            pages_str = ', '.join(map(str, pages))
+                        else:
+                            pages_str = f"{', '.join(map(str, pages[:5]))}, ... (+{len(pages)-5} more)"
+                        
+                details.append(f"'{name}' on {obj_type} pages: {pages_str}")
+                
+                self.file_finished.emit(row, True, msg, details)
             else:
                 error_msg = result.get('error', 'Unknown error')
                 # Show traceback in tooltip if available
                 if 'traceback' in result:
                     error_msg = f"{error_msg}\n\nDetails:\n{result['traceback']}"
-                self.file_finished.emit(row, False, error_msg)
+                self.file_finished.emit(row, False, error_msg, [])
             
             self.progress.emit(i + 1, total)
             
@@ -53,3 +70,4 @@ class CleanWorker(QThread):
 
     def stop(self):
         self._is_running = False
+

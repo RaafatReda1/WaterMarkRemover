@@ -214,7 +214,7 @@ def get_stylesheet() -> str:
     }}
     
     /* Text Edit (Activity Log) */
-    QTextEdit {{
+    QTextEdit, QTextBrowser {{
         background-color: {c['surface']};
         border: 1px solid {c['border']};
         border-radius: 4px;

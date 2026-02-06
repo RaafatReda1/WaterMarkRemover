@@ -20,7 +20,7 @@ from src.core.cleaner import PDFCleaner
 from src.workers.clean_worker import CleanWorker
 from src.workers.scan_worker import ScanWorker
 from src.utils.settings import SettingsManager
-from src.models.enums import FileStatus
+from src.models.enums import FileStatus, LogLevel
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -348,7 +348,7 @@ class MainWindow(QMainWindow):
         # Start Worker
         self.worker = CleanWorker(files_to_process, options)
         self.worker.progress.connect(self.on_progress)
-        self.worker.file_finished.connect(self.on_file_finished)
+        self.worker.file_finished.connect(self.on_file_cleaned)
         self.worker.finished.connect(self.on_finished)
         self.worker.start()
         
@@ -361,7 +361,8 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(current)
         self.lbl_progress.setText(f"Processing: {current}/{total} files")
 
-    def on_file_finished(self, row, success, message):
+    def on_file_cleaned(self, row, success, message, details=None):
+        """Handle file cleaning completion"""
         status = "✅" if success else "❌"
         self.file_list.update_status(row, status, message)
         
@@ -370,7 +371,11 @@ class MainWindow(QMainWindow):
         file_name = name_item.text() if name_item else f"File {row+1}"
         
         if success:
-            self.activity_log.success(f"{file_name}: {message}")
+            # Log with expandable details if available
+            if details and len(details) > 0:
+                self.activity_log.log_with_details(LogLevel.SUCCESS, f"{file_name}: {message}", details)
+            else:
+                self.activity_log.success(f"{file_name}: {message}")
         else:
             self.activity_log.error(f"{file_name}: {message}")
 
