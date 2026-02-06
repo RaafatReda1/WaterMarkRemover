@@ -86,14 +86,14 @@ class ActivityLog(QWidget):
             cursor.movePosition(QTextCursor.End)
             self.text_edit.setTextCursor(cursor)
     
-    def log_with_details(self, level: LogLevel, message: str, details: list):
+    def log_with_details(self, level: LogLevel, message: str, details: list | dict):
         """
         Add a log message with expandable details
         
         Args:
             level: Log level
             message: Main message
-            details: List of detail strings to show when expanded
+            details: List or Dict of details
         """
         timestamp = datetime.now().strftime("%H:%M:%S")
         prefix = LOG_PREFIXES.get(level, "")
@@ -102,15 +102,45 @@ class ActivityLog(QWidget):
         # Simplified format - just show main message with count
         main_msg = f'<span style="color: {color}; font-weight: 500;">[{timestamp}] {prefix} {message}</span>'
         
-        # Show first 5 details inline with a summary count
-        if len(details) <= 5:
-            detail_list = "<br>".join([f'  • {d}' for d in details])
-        else:
-            detail_list = "<br>".join([f'  • {d}' for d in details[:5]])
-            detail_list += f"<br>  <i>... and {len(details) - 5} more objects removed</i>"
+        detail_html = ""
+        
+        # Handle dictionary (Removed vs Preserved)
+        if isinstance(details, dict):
+            removed = details.get('removed', [])
+            preserved = details.get('preserved', [])
+            
+            # Section for Removed
+            if removed:
+                detail_html += '<div style="margin-top: 4px; color: #B71C1C;"><b>❌ Removed Objects:</b></div>'
+                if len(removed) <= 5:
+                    detail_html += "<br>".join([f'  • {d}' for d in removed])
+                else:
+                    detail_html += "<br>".join([f'  • {d}' for d in removed[:5]])
+                    detail_html += f"<br>  <i>... and {len(removed) - 5} more</i>"
+            
+            # Section for Preserved (with nice styling)
+            if preserved:
+                if removed: detail_html += "<br><br>" # Spacing
+                detail_html += '<div style="margin-top: 4px; color: #0D47A1;"><b>🛡️ Preserved User Images:</b></div>'
+                if len(preserved) <= 10:
+                    detail_html += "<br>".join([f'  • {d}' for d in preserved])
+                else:
+                    detail_html += "<br>".join([f'  • {d}' for d in preserved[:10]])
+                    detail_html += f"<br>  <i>... and {len(preserved) - 10} more</i>"
+                    
+        # Handle legacy list format (just removed)
+        elif isinstance(details, list):
+            if len(details) <= 5:
+                detail_html = "<br>".join([f'  • {d}' for d in details])
+            else:
+                detail_html = "<br>".join([f'  • {d}' for d in details[:5]])
+                detail_html += f"<br>  <i>... and {len(details) - 5} more objects removed</i>"
         
         # Combine everything
-        full_msg = f'{main_msg}<br><span style="font-size: 8.5pt; color: #666;">{detail_list}</span>'
+        if detail_html:
+            full_msg = f'{main_msg}<br><div style="margin-left: 15px; font-size: 8.5pt; color: #444;">{detail_html}</div>'
+        else:
+            full_msg = main_msg
         
         # Append to log
         self.text_edit.append(full_msg)

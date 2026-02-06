@@ -215,20 +215,84 @@ class PDFCleaner:
             # After processing all pages, collect unique removed objects summary
             # Build a set of unique XRefs that were marked as watermarks
             removed_xrefs = set()
+            preserved_xrefs = set()
+            
             for xref, data in watermark_analysis.items():
                 if data['is_watermark']:
                     removed_xrefs.add(xref)
+                else:
+                    preserved_xrefs.add(xref)
             
             # Create removed_objects list with unique entries
             for xref in removed_xrefs:
                 data = watermark_analysis[xref]
-                # Get one of the names (they should all be the same for a given XRef)
                 obj_name = data['names'][0] if data['names'] else f"XRef{xref}"
                 removed_objects.append({
                     'name': obj_name,
                     'pages': data['page_numbers'],
                     'type': 'XObject watermark'
                 })
+                
+            # Create preserved_objects list by scanning ALL pages for ANY remaining images
+            # This captures Inline Images, Form XObjects, and everything else that is actually on the page.
+            preserved_objects_map = {} # Key: (xref, position_label), Value: {'pages': [], 'name': ...}
+            
+            # Start a full audit of all pages
+            print("DEBUG: Starting final audit for preserved images...")
+            for page_num in range(len(doc)):
+                page = doc.load_page(page_num)
+                page_rect = page.rect
+                
+                # Get all images on the page (inline + XObjects)
+                # get_images(full=True) returns: (xref, smask, width, height, bpc, colorspace, alt.colorspace, name, filter)
+                page_images = page.get_images(full=True)
+                
+                for img in page_images:
+                    xref = img[0]
+                    name = img[7] # Name is at index 7
+                    
+                    # Skip if this XRef was in our removed list
+                    if xref in removed_xrefs:
+                        continue
+                        
+                    # This is a preserved image!
+                    # Get its position
+                    position_label = "Unknown"
+                    if xref > 0: # Normal XObject
+                        try:
+                            rects = page.get_image_rects(xref)
+                            if rects:
+                                position_label = self._get_position_label(rects[0], page_rect)
+                        except:
+                            pass # Skip position calculation errors
+                    else:
+                        # Inline Image (xref=0) - Hard to get rect directly without plumbing
+                        # We label it distinctively
+                        position_label = "Inline Layout"
+                        if not name: name = "InlineImg"
+                    
+                    # Create a unique key for grouping (xref + position)
+                    # We group by XRef, but if it's inline (xref 0), we might group by Name?
+                    # Inline images might share name 'Im0', 'Im1'.
+                    key = (xref, name)
+                    
+                    if key not in preserved_objects_map:
+                        preserved_objects_map[key] = {
+                            'name': name,
+                            'xref': xref,
+                            'pages': [],
+                            'position': position_label,
+                            'type': 'Inline Image' if xref == 0 else 'Preserved Image'
+                        }
+                    
+                    # Add this page
+                    # Note: page.number is 0-indexed, users prefer 1-indexed
+                    preserved_objects_map[key]['pages'].append(page.number + 1)
+
+            # Convert map to list
+            preserved_objects = list(preserved_objects_map.values())
+            # Sort by first page
+            preserved_objects.sort(key=lambda x: x['pages'][0] if x['pages'] else 0)
             
             # If overwrite is enabled, save to original path
             if overwrite_original:
@@ -250,6 +314,7 @@ class PDFCleaner:
                     'annotations_removed': annotations_removed,
                     'watermarks_removed': watermarks_removed,
                     'removed_objects': removed_objects,
+                    'preserved_objects': preserved_objects,
                     'overwritten': True
                 }
             else:
@@ -263,9 +328,10 @@ class PDFCleaner:
                     'annotations_removed': annotations_removed,
                     'watermarks_removed': watermarks_removed,
                     'removed_objects': removed_objects,
+                    'preserved_objects': preserved_objects,
                     'overwritten': False
                 }
-            
+    
         except Exception as e:
             import traceback
             return {
@@ -273,6 +339,26 @@ class PDFCleaner:
                 'error': str(e),
                 'traceback': traceback.format_exc()
             }
+
+    def _get_position_label(self, rect, page_rect):
+        """Calculate human-readable position label"""
+        w, h = page_rect.width, page_rect.height
+        cx, cy = rect.x0 + (rect.width / 2), rect.y0 + (rect.height / 2)
+        
+        # Horizontal
+        if cx < w * 0.33: h_pos = "Left"
+        elif cx > w * 0.66: h_pos = "Right"
+        else: h_pos = "Center"
+        
+        # Vertical
+        if cy < h * 0.33: v_pos = "Top"
+        elif cy > h * 0.66: v_pos = "Bottom"
+        else: v_pos = "Middle"
+        
+        if h_pos == "Center" and v_pos == "Middle":
+            return "Center"
+        
+        return f"{v_pos}-{h_pos}"
 
     def generate_output_path(self, input_path):
         """

@@ -686,6 +686,7 @@
   ('urllib.response',
    'C:\\Program Files\\Python311\\Lib\\urllib\\response.py',
    'PYMODULE'),
+  ('uuid', 'C:\\Program Files\\Python311\\Lib\\uuid.py', 'PYMODULE'),
   ('xml', 'C:\\Program Files\\Python311\\Lib\\xml\\__init__.py', 'PYMODULE'),
   ('xml.etree',
    'C:\\Program Files\\Python311\\Lib\\xml\\etree\\__init__.py',

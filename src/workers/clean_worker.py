@@ -3,7 +3,7 @@ from src.core.cleaner import PDFCleaner
 
 class CleanWorker(QThread):
     progress = Signal(int, int) # item_idx, total
-    file_finished = Signal(int, bool, str, list) # row_idx, success, message, details
+    file_finished = Signal(int, bool, str, object) # row_idx, success, message, details (dict or list)
     finished = Signal()
     
     def __init__(self, files, options=None):
@@ -41,20 +41,41 @@ class CleanWorker(QThread):
                 msg = f"Removed: {', '.join(parts)}" if parts else "No changes needed"
                 
                 # Build detailed object list
-                details = []
+                details = {
+                    'removed': [],
+                    'preserved': []
+                }
+                
+                # Process removed objects
                 if result.get('removed_objects'):
                     for obj in result['removed_objects']:
                         name = obj['name']
                         pages = obj['pages']
                         obj_type = obj.get('type', 'object')
                         
-                        # Format page list
                         if len(pages) <= 5:
                             pages_str = ', '.join(map(str, pages))
                         else:
                             pages_str = f"{', '.join(map(str, pages[:5]))}, ... (+{len(pages)-5} more)"
                         
-                details.append(f"'{name}' on {obj_type} pages: {pages_str}")
+                        details['removed'].append(f"'{name}' on {obj_type} pages: {pages_str}")
+                
+                # Process preserved objects
+                if result.get('preserved_objects'):
+                    for obj in result['preserved_objects']:
+                        name = obj['name']
+                        xref = obj.get('xref', '?')
+                        pages = obj['pages']
+                        pos = obj.get('position', 'Unknown')
+                        
+                        # Shorten page list
+                        if len(pages) <= 3:
+                            pages_str = ', '.join(map(str, pages))
+                        else:
+                            pages_str = f"{', '.join(map(str, pages[:3]))}..."
+                            
+                        # Format: 🛡️ 'Msg' (XRef 123) at Top-Left on pages 1, 2...
+                        details['preserved'].append(f"'{name}' (XRef {xref}) at <b>{pos}</b> on pages: {pages_str}")
                 
                 self.file_finished.emit(row, True, msg, details)
             else:
